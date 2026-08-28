@@ -1,69 +1,142 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ScopeProvider, useCurrentScope } from '@/context/ScopeContext';
+import { Header } from '@/components/common/Header';
+import { ScopeIndicator } from '@/components/common/ScopeIndicator';
+import { Breadcrumb } from '@/components/common/Breadcrumbs';
+import { ScopeSelector } from '@/components/dashboard/ScopeSelector';
+import { KPICards } from '@/components/dashboard/KPICards';
+import { TrendCharts } from '@/components/dashboard/TrendCharts';
+import { PerformanceTable } from '@/components/dashboard/PerformanceTable';
+import { ReportsView } from '@/components/reports/ReportsView';
+import { AdminModule } from '@/components/admin/AdminModule';
+import { LoginModal } from '@/components/auth/LoginModal';
+import { EmptyState } from '@/components/common/EmptyState';
+import { BlockDataEntry } from '@/components/dashboard/BlockDataEntry';
+import { PlusCircle, FileSpreadsheet } from 'lucide-react';
+
+function MainPortal() {
+  const { currentUser } = useAuth();
+  const { currentScope, metrics } = useCurrentScope();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'reports' | 'admin'>(
+    currentUser.role === 'MockAdministrator' ? 'admin' : 'dashboard'
+  );
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [dataEntryModalOpen, setDataEntryModalOpen] = useState(false);
+
+  // Check if current scope has zero blocks (Edge case demonstration)
+  const isScopeEmpty = metrics.totalBlocks === 0;
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex flex-col font-sans text-gray-900 antialiased">
+      {/* 8. Shell Header */}
+      <Header
+        onOpenRoleModal={() => setLoginModalOpen(true)}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* TAB 1: DASHBOARD */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Scope Visual Indicator & Interactive Breadcrumbs */}
+            <ScopeIndicator />
+            <Breadcrumb />
+
+            {/* BLOCK HEAD ONLY: Data Entry Action Banner */}
+            {currentUser.role === 'BlockHead' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                    <FileSpreadsheet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-amber-950">
+                      Block Field Data Entry (Authorized Action)
+                    </h3>
+                    <p className="text-xs text-amber-800 mt-0.5">
+                      Input newly reported vaccination rounds, inseminations, or milk logs for your assigned block.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setDataEntryModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold rounded-lg shadow-xs transition-colors shrink-0"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Input New Block Data</span>
+                </button>
+              </div>
+            )}
+
+            {/* Role-Specific Scope Drilldown Bar (Hidden for Block Head & Admin) */}
+            <ScopeSelector />
+
+            {/* Edge Case 9: Empty blocks in subdivision */}
+            {isScopeEmpty ? (
+              <EmptyState
+                title="Zero Blocks Registered in this Boundary"
+                description="This administrative zone does not have any active veterinary blocks or livestock records assigned. The dashboard gracefully handles zero-children states without crashing."
+              />
+            ) : (
+              <>
+                {/* Dynamic KPI Cards derived from current scope */}
+                <KPICards />
+
+                {/* Scoped Charts */}
+                <TrendCharts />
+
+                {/* Performance Matrix Table */}
+                <PerformanceTable />
+              </>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: REPORTS */}
+        {activeTab === 'reports' && (
+          <div className="animate-in fade-in duration-200">
+            <ReportsView />
+          </div>
+        )}
+
+        {/* TAB 3: ADMINISTRATION */}
+        {activeTab === 'admin' && (
+          <div className="animate-in fade-in duration-200">
+            <AdminModule onBackToDashboard={() => setActiveTab('dashboard')} />
+          </div>
+        )}
+      </main>
+
+      {/* Block Head Data Entry Modal (Locked to Block Head) */}
+      <BlockDataEntry
+        isOpen={dataEntryModalOpen}
+        onClose={() => setDataEntryModalOpen(false)}
+      />
+
+      {/* Login & Role Switcher Modal */}
+      <LoginModal isOpen={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
+
+      {/* Government Footer */}
+      <footer className="bg-white border-t border-gray-200 py-4 px-4 text-center text-xs text-gray-500 mt-auto">
+        <p>© 2026 Animal Resources Development Department (ARDD), Government of Tripura. All rights reserved.</p>
+        <p className="text-[11px] text-gray-400 mt-1">High-Fidelity Frontend Scoping Prototype • Pure Browser Client-Side State</p>
+      </footer>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <AuthProvider>
+      <ScopeProvider>
+        <MainPortal />
+      </ScopeProvider>
+    </AuthProvider>
   );
 }
